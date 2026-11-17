@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: LumTrace-Diagnosis
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/lumtrace_diagnosis?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: org.csu.lumtrace.lumtracediagnosis.entity
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# 业务自定义配置
+lumtrace:
+  jwt:
+    secret: lumtrace-medical-assistant-secret-key-please-change-in-production-2026
+    expire-minutes: 720
+    header: Authorization
+    prefix: "Bearer "
+  ai:
+    # 引擎类型：RULE（内置规则引擎）/ LLM（外部大模型）
+    engine: RULE
+    confidence-threshold: 0.35
+    llm:
+      base-url: https://api.openai.com/v1
+      api-key: ""
+      model: gpt-4o-mini
+      timeout-ms: 15000
+
+logging:
+  level:
+    org.csu.lumtrace: DEBUG

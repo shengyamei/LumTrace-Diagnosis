@@ -13,6 +13,8 @@ import org.springframework.context.annotation.Configuration;
 public class AiConfig {
     /** 引擎类型：RULE / LLM */
     private String engine = "RULE";
+    /** 离线降级开关：true 时完全不调用大模型，仅本地规则库运行（现场断网演示） */
+    private Boolean offlineMode = false;
     /** 输出候选疾病的最小置信度阈值 */
     private Double confidenceThreshold = 0.35;
     private Llm llm = new Llm();

@@ -33,6 +33,8 @@ lumtrace:
   ai:
     # 引擎类型：RULE（内置规则引擎）/ LLM（外部大模型）
     engine: RULE
+    # 离线降级开关：true=完全离线，仅本地规则库运行（大赛现场断网演示一键切换）
+    offline-mode: false
     confidence-threshold: 0.35
     llm:
       base-url: https://api.openai.com/v1

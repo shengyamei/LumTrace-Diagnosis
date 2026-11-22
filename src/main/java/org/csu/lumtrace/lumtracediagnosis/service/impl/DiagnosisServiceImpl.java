@@ -7,6 +7,7 @@ import org.csu.lumtrace.lumtracediagnosis.dto.request.DiagnosisRequest;
 import org.csu.lumtrace.lumtracediagnosis.dto.response.DiagnosisResponse;
 import org.csu.lumtrace.lumtracediagnosis.entity.DiagnosisRecord;
 import org.csu.lumtrace.lumtracediagnosis.entity.DiagnosisReport;
+import org.csu.lumtrace.lumtracediagnosis.filter.SensitiveWordFilter;
 import org.csu.lumtrace.lumtracediagnosis.mapper.DiagnosisRecordMapper;
 import org.csu.lumtrace.lumtracediagnosis.mapper.DiagnosisReportMapper;
 import org.csu.lumtrace.lumtracediagnosis.service.DiagnosisService;
@@ -35,6 +36,9 @@ public class DiagnosisServiceImpl implements DiagnosisService {
     @Autowired
     private DiagnosisReportMapper reportMapper;
 
+    @Autowired
+    private SensitiveWordFilter sensitiveWordFilter;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public DiagnosisResponse diagnose(Long userId, DiagnosisRequest req) {
@@ -45,6 +49,14 @@ public class DiagnosisServiceImpl implements DiagnosisService {
         if (nameMap.isEmpty()) throw new BusinessException(400, "症状ID不存在");
 
         DiagnosisResponse resp = engineRouter.diagnose(req, nameMap);
+
+        // 合规后置过滤（架构说明书 2.4）：AI 输出必经敏感词拦截，且所有输出附带免责声明
+        SensitiveWordFilter.FilterResult filtered = sensitiveWordFilter.check(resp.getSuggestion());
+        if (filtered.blocked()) {
+            log.warn("AI建议命中敏感词已拦截: userId={}, hits={}", userId, filtered.hitWords());
+        }
+        resp.setSuggestion(filtered.safeText());
+        resp.setDisclaimer(AppConstants.DISCLAIMER);
 
         // 落库
         DiagnosisRecord record = new DiagnosisRecord();
@@ -131,7 +143,7 @@ public class DiagnosisServiceImpl implements DiagnosisService {
         sb.append("置信度：").append(resp.getConfidence()).append("\n");
         sb.append("严重度：").append(resp.getSeverity()).append("\n");
         sb.append("建议：").append(resp.getSuggestion()).append("\n");
-        sb.append("\n提示：本报告由AI生成，仅供参考，不作为医学诊断结论。\n");
+        sb.append("\n提示：").append(AppConstants.DISCLAIMER).append("\n");
         return sb.toString();
     }
 }

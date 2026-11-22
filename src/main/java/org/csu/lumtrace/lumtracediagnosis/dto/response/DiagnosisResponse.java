@@ -23,6 +23,12 @@ public class DiagnosisResponse implements Serializable {
     private Integer severity;
     /** 建议 */
     private String suggestion;
+    /** 推荐就诊科室（分诊输出，W2 分诊链路接入后填充） */
+    private String deptName;
+    /** 分诊就医提示 */
+    private String tip;
+    /** 免责声明（架构说明书 1.1 固定文案，所有AI输出必带） */
+    private String disclaimer;
     /** 候选疾病列表（按分数排序） */
     private List<Candidate> candidates;
 

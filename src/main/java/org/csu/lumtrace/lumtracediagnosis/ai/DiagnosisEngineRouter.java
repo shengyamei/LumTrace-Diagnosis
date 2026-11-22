@@ -1,9 +1,12 @@
 package org.csu.lumtrace.lumtracediagnosis.ai;
 
+import org.csu.lumtrace.lumtracediagnosis.common.constant.AppConstants;
 import org.csu.lumtrace.lumtracediagnosis.dto.request.DiagnosisRequest;
 import org.csu.lumtrace.lumtracediagnosis.dto.response.DiagnosisResponse;
 import org.csu.lumtrace.lumtracediagnosis.entity.Symptom;
 import org.csu.lumtrace.lumtracediagnosis.mapper.SymptomMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Primary;
@@ -19,6 +22,7 @@ import java.util.stream.Collectors;
 @Service
 @Primary
 public class DiagnosisEngineRouter implements AiDiagnosisEngine {
+    private static final Logger log = LoggerFactory.getLogger(DiagnosisEngineRouter.class);
 
     @Autowired
     @Qualifier("ruleBasedDiagnosisEngine")
@@ -36,8 +40,21 @@ public class DiagnosisEngineRouter implements AiDiagnosisEngine {
 
     @Override
     public DiagnosisResponse diagnose(DiagnosisRequest request, Map<Long, String> symptomNames) {
-        AiDiagnosisEngine target = "LLM".equalsIgnoreCase(aiConfig.getEngine()) ? llmEngine : ruleEngine;
-        return target.diagnose(request, symptomNames);
+        // 离线降级：现场断网演示时一键切换，完全不发外部请求
+        if (Boolean.TRUE.equals(aiConfig.getOfflineMode())) {
+            log.info("离线降级模式开启，仅使用本地规则引擎");
+            return ruleEngine.diagnose(request, symptomNames);
+        }
+        if (AppConstants.ENGINE_LLM.equalsIgnoreCase(aiConfig.getEngine())) {
+            try {
+                return llmEngine.diagnose(request, symptomNames);
+            } catch (Exception e) {
+                // 无 Key / 超时 / 返回不可解析 → 一律回落规则引擎，不向前端报错
+                log.warn("大模型引擎不可用，降级到规则引擎: {}", e.getMessage());
+                return ruleEngine.diagnose(request, symptomNames);
+            }
+        }
+        return ruleEngine.diagnose(request, symptomNames);
     }
 
     @Override

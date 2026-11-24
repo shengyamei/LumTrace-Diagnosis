@@ -31,14 +31,21 @@ lumtrace:
     header: Authorization
     prefix: "Bearer "
   ai:
-    # 引擎类型：RULE（内置规则引擎）/ LLM（外部大模型）
+    # 引擎类型：RULE（本地规则引擎）/ LLM（外部大模型）
     engine: RULE
-    confidence-threshold: 0.35
+    # 断网降级开关：设为true时禁用大模型调用，仅走本地规则库
+    offline-mode: false
+    # 大模型配置
     llm:
-      base-url: https://api.openai.com/v1
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
       api-key: ""
-      model: gpt-4o-mini
+      model: qwen-turbo
       timeout-ms: 15000
+      # 分诊约束提示词
+      system-prompt: "你是分诊助手，禁止诊断疾病，禁止给出治疗方案，仅根据用户描述症状推荐就诊科室并给出简单就医提示，最后提醒本内容仅供参考，请以医生面诊为准。"
+  remind:
+    # 定时任务扫描间隔（毫秒），默认每分钟一次
+    scan-interval-ms: 60000
 
 logging:
   level:

@@ -34,6 +34,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/user/login",
                         "/user/register",
                         "/symptom/list",
+                        "/health",
+                        "/notice/**",
                         "/error",
                         "/favicon.ico"
                 );

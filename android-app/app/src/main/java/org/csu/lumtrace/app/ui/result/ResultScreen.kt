@@ -80,6 +80,23 @@ private fun ResultContent(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        if (DiagnosisHolder.isOffline) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "当前为离线演示结果：服务器不可用，已按内置规则给出参考方向，未上传任何数据。",
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        }
+
         item {
             Card(
                 colors = CardDefaults.cardColors(
@@ -145,11 +162,12 @@ private fun ResultContent(
             }
         }
 
-        if (result.candidates.isNotEmpty()) {
+        val others = result.candidates.filter { it.disease != result.topDisease }
+        if (others.isNotEmpty()) {
             item {
                 Text("其他可能方向", style = MaterialTheme.typography.titleMedium)
             }
-            items(result.candidates) { c ->
+            items(others) { c ->
                 CandidateRow(c)
             }
         }

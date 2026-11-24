@@ -87,7 +87,7 @@ object ApiClient {
         }
 
         val client = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(6, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val builder = chain.request().newBuilder()

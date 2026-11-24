@@ -47,6 +47,8 @@ import org.csu.lumtrace.app.data.ApiClient
 import org.csu.lumtrace.app.data.ApiException
 import org.csu.lumtrace.app.data.DiagnosisHolder
 import org.csu.lumtrace.app.data.DiagnosisRequest
+import org.csu.lumtrace.app.data.LocalSymptoms
+import org.csu.lumtrace.app.data.OfflineTriage
 import org.csu.lumtrace.app.data.SymptomDto
 
 data class SymptomUiState(
@@ -57,7 +59,8 @@ data class SymptomUiState(
     val category: String? = null,
     val keyword: String = "",
     val submitting: Boolean = false,
-    val submitError: String? = null
+    val submitError: String? = null,
+    val offline: Boolean = false
 ) {
     val categories: List<String>
         get() = all.mapNotNull { it.category }.distinct().sorted()
@@ -82,17 +85,23 @@ class SymptomViewModel : ViewModel() {
     }
 
     fun load() {
+        // 先用内置症状库铺底，避免首屏空等；接口可用时再替换为服务器数据
+        uiState = uiState.copy(
+            loading = false,
+            all = LocalSymptoms.list,
+            offline = true,
+            loadError = null
+        )
         viewModelScope.launch {
-            uiState = uiState.copy(loading = true, loadError = null)
             try {
                 val result = ApiClient.service().symptoms()
-                if (!result.isSuccess) throw ApiException(result.code, result.message ?: "加载症状失败")
-                uiState = uiState.copy(loading = false, all = result.requireData())
+                if (!result.isSuccess) return@launch
+                val remote = result.requireData()
+                if (remote.isNotEmpty()) {
+                    uiState = uiState.copy(all = remote, offline = false)
+                }
             } catch (e: Exception) {
-                uiState = uiState.copy(
-                    loading = false,
-                    loadError = if (e is ApiException) e.message else "网络异常，请检查服务器地址"
-                )
+                // 保持内置症状库
             }
         }
     }
@@ -116,6 +125,14 @@ class SymptomViewModel : ViewModel() {
             uiState = uiState.copy(submitError = "请至少选择一个症状")
             return
         }
+        if (uiState.offline) {
+            // 已知离线：直接本地评估，避免等待网络超时
+            val picked = uiState.all.filter { it.id in uiState.selected }
+            DiagnosisHolder.last = OfflineTriage.evaluate(picked)
+            DiagnosisHolder.isOffline = true
+            onSuccess()
+            return
+        }
         viewModelScope.launch {
             uiState = uiState.copy(submitting = true, submitError = null)
             try {
@@ -124,13 +141,16 @@ class SymptomViewModel : ViewModel() {
                 )
                 if (!result.isSuccess) throw ApiException(result.code, result.message ?: "评估失败")
                 DiagnosisHolder.last = result.requireData()
+                DiagnosisHolder.isOffline = false
                 uiState = uiState.copy(submitting = false)
                 onSuccess()
             } catch (e: Exception) {
-                uiState = uiState.copy(
-                    submitting = false,
-                    submitError = if (e is ApiException) e.message else "网络异常，请稍后重试"
-                )
+                // 离线降级：接口不可用时按内置规则给出建议就诊方向
+                val picked = uiState.all.filter { it.id in uiState.selected }
+                DiagnosisHolder.last = OfflineTriage.evaluate(picked)
+                DiagnosisHolder.isOffline = true
+                uiState = uiState.copy(submitting = false, submitError = null)
+                onSuccess()
             }
         }
     }
@@ -191,6 +211,23 @@ fun SymptomScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (state.offline) {
+                Surface(color = MaterialTheme.colorScheme.tertiaryContainer) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "离线演示模式：使用内置症状库",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = viewModel::load) { Text("连接服务器") }
+                    }
+                }
+            }
             OutlinedTextField(
                 value = state.keyword,
                 onValueChange = viewModel::setKeyword,

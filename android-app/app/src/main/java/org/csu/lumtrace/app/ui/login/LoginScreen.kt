@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -80,6 +81,7 @@ class LoginViewModel : ViewModel() {
 @Composable
 fun LoginScreen(
     onLoggedIn: () -> Unit,
+    onGuest: () -> Unit,
     viewModel: LoginViewModel = viewModel()
 ) {
     val state = viewModel.uiState
@@ -136,6 +138,13 @@ fun LoginScreen(
             }
 
             Spacer(Modifier.height(16.dp))
+            TextButton(
+                onClick = onGuest,
+                enabled = !state.loading,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("暂不登录，离线体验")
+            }
             Text("本应用仅供参考，不能替代执业医师", style = MaterialTheme.typography.bodySmall)
         }
     }

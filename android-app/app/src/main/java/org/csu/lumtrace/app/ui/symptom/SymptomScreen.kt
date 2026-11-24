@@ -47,8 +47,11 @@ import org.csu.lumtrace.app.data.ApiClient
 import org.csu.lumtrace.app.data.ApiException
 import org.csu.lumtrace.app.data.DiagnosisHolder
 import org.csu.lumtrace.app.data.DiagnosisRequest
+import org.csu.lumtrace.app.data.DiagnosisResponse
+import org.csu.lumtrace.app.data.LocalRecord
 import org.csu.lumtrace.app.data.LocalSymptoms
 import org.csu.lumtrace.app.data.OfflineTriage
+import org.csu.lumtrace.app.data.RecordStore
 import org.csu.lumtrace.app.data.SymptomDto
 
 data class SymptomUiState(
@@ -127,9 +130,10 @@ class SymptomViewModel : ViewModel() {
         }
         if (uiState.offline) {
             // 已知离线：直接本地评估，避免等待网络超时
-            val picked = uiState.all.filter { it.id in uiState.selected }
-            DiagnosisHolder.last = OfflineTriage.evaluate(picked)
+            val data = OfflineTriage.evaluate(pickedSymptoms())
+            DiagnosisHolder.last = data
             DiagnosisHolder.isOffline = true
+            viewModelScope.launch { saveRecord(data, offline = true) }
             onSuccess()
             return
         }
@@ -140,18 +144,45 @@ class SymptomViewModel : ViewModel() {
                     DiagnosisRequest(symptomIds = uiState.selected.toList())
                 )
                 if (!result.isSuccess) throw ApiException(result.code, result.message ?: "评估失败")
-                DiagnosisHolder.last = result.requireData()
+                val data = result.requireData()
+                DiagnosisHolder.last = data
                 DiagnosisHolder.isOffline = false
+                saveRecord(data, offline = false)
                 uiState = uiState.copy(submitting = false)
                 onSuccess()
             } catch (e: Exception) {
                 // 离线降级：接口不可用时按内置规则给出建议就诊方向
-                val picked = uiState.all.filter { it.id in uiState.selected }
-                DiagnosisHolder.last = OfflineTriage.evaluate(picked)
+                val data = OfflineTriage.evaluate(pickedSymptoms())
+                DiagnosisHolder.last = data
                 DiagnosisHolder.isOffline = true
+                saveRecord(data, offline = true)
                 uiState = uiState.copy(submitting = false, submitError = null)
                 onSuccess()
             }
+        }
+    }
+
+    private fun pickedSymptoms(): List<SymptomDto> =
+        uiState.all.filter { it.id in uiState.selected }
+
+    private suspend fun saveRecord(data: DiagnosisResponse, offline: Boolean) {
+        // 病程记录写入失败不影响评估主流程
+        runCatching {
+            val now = System.currentTimeMillis()
+            RecordStore.add(
+                ApiClient.appContext,
+                LocalRecord(
+                    id = now,
+                    time = now,
+                    source = if (offline) "离线" else "在线",
+                    topDisease = data.topDisease ?: "暂无明显匹配",
+                    confidence = data.confidence,
+                    severity = data.severity,
+                    suggestion = data.suggestion,
+                    symptomNames = pickedSymptoms().map { it.name },
+                    candidates = data.candidates.map { it.disease }
+                )
+            )
         }
     }
 }

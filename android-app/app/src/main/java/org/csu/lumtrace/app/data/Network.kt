@@ -76,9 +76,13 @@ object ApiClient {
     lateinit var tokenStore: TokenStore
         private set
 
+    lateinit var appContext: Context
+        private set
+
     private var api: ApiService? = null
 
     fun init(context: Context) {
+        appContext = context.applicationContext
         tokenStore = TokenStore(context)
 
         val logging = HttpLoggingInterceptor().apply {

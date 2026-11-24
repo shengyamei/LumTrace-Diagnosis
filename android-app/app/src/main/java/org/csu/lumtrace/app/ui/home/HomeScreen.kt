@@ -31,6 +31,7 @@ private data class HomeEntry(val title: String, val desc: String)
 @Composable
 fun HomeScreen(
     onOpenSymptom: () -> Unit,
+    onOpenRecords: () -> Unit,
     onLogout: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -68,7 +69,12 @@ fun HomeScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { if (index == 0) onOpenSymptom() }
+                        .clickable {
+                            when (index) {
+                                0 -> onOpenSymptom()
+                                1 -> onOpenRecords()
+                            }
+                        }
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(entry.title, style = MaterialTheme.typography.titleLarge)

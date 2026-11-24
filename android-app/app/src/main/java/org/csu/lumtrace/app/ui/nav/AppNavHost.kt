@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import org.csu.lumtrace.app.ui.home.HomeScreen
 import org.csu.lumtrace.app.ui.login.LoginScreen
+import org.csu.lumtrace.app.ui.record.RecordScreen
 import org.csu.lumtrace.app.ui.result.ResultScreen
 import org.csu.lumtrace.app.ui.symptom.SymptomScreen
 
@@ -14,6 +15,7 @@ object Routes {
     const val HOME = "home"
     const val SYMPTOM = "symptom"
     const val RESULT = "result"
+    const val RECORD = "record"
 }
 
 @Composable
@@ -37,6 +39,7 @@ fun AppNavHost() {
         composable(Routes.HOME) {
             HomeScreen(
                 onOpenSymptom = { navController.navigate(Routes.SYMPTOM) },
+                onOpenRecords = { navController.navigate(Routes.RECORD) },
                 onLogout = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.HOME) { inclusive = true }
@@ -52,6 +55,9 @@ fun AppNavHost() {
         }
         composable(Routes.RESULT) {
             ResultScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.RECORD) {
+            RecordScreen(onBack = { navController.popBackStack() })
         }
     }
 }

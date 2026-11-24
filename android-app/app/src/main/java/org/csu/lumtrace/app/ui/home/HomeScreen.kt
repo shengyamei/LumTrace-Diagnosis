@@ -1,5 +1,6 @@
 package org.csu.lumtrace.app.ui.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -8,7 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -28,7 +29,10 @@ private data class HomeEntry(val title: String, val desc: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onLogout: () -> Unit) {
+fun HomeScreen(
+    onOpenSymptom: () -> Unit,
+    onLogout: () -> Unit
+) {
     val scope = rememberCoroutineScope()
     val entries = listOf(
         HomeEntry("AI 导诊分诊", "描述症状，推荐就诊科室"),
@@ -60,8 +64,12 @@ fun HomeScreen(onLogout: () -> Unit) {
                     )
                 }
             }
-            items(entries) { entry ->
-                Card(modifier = Modifier.fillMaxWidth()) {
+            itemsIndexed(entries) { index, entry ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { if (index == 0) onOpenSymptom() }
+                ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Text(entry.title, style = MaterialTheme.typography.titleLarge)
                         Spacer(Modifier.height(4.dp))

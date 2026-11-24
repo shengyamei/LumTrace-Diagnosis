@@ -32,6 +32,7 @@ private data class HomeEntry(val title: String, val desc: String)
 fun HomeScreen(
     onOpenSymptom: () -> Unit,
     onOpenRecords: () -> Unit,
+    onOpenReminders: () -> Unit,
     onLogout: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -73,6 +74,7 @@ fun HomeScreen(
                             when (index) {
                                 0 -> onOpenSymptom()
                                 1 -> onOpenRecords()
+                                2 -> onOpenReminders()
                             }
                         }
                 ) {

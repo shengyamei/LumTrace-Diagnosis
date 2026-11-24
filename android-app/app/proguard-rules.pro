@@ -1,0 +1,1 @@
+# LumTrace app ProGuard rules
